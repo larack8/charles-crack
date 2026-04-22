@@ -1,16 +1,22 @@
-# charles-crack
+<p align="center">
+  <img src="assets/logo.svg" alt="CharlesKeygen logo" width="160" height="160"/>
+</p>
 
-[中文](README_zh.md) | **English**
+<h1 align="center">charles-crack</h1>
+
+<p align="center"><a href="README_zh.md">中文</a> | <b>English</b></p>
 
 Open-source Charles Proxy license keygen, implemented from scratch with the RC5 block cipher. Compatible with every historical Charles 3.x / 4.x / 5.x release.
 
-This repo ships a small, dependency-free Java codebase plus a build script that produces:
+This repo ships a small, dependency-free Java codebase plus build scripts that produce:
 
-- A cross-platform **runnable JAR** (`charles-keygen.jar`) — works anywhere a JRE 11+ is installed.
-- A **native desktop app / installer** for the host OS via `jpackage`:
-  - **macOS** → `CharlesKeygen.app` bundle + `.dmg` installer
-  - **Windows** → `CharlesKeygen.exe` launcher + `.msi` installer
-  - **Linux** → `CharlesKeygen` binary + `.deb` package (and `.rpm` on rpm-based distros)
+- A cross-platform **runnable JAR** — works anywhere a JRE 11+ is installed.
+- **Native desktop bundles / installers** via `jpackage`:
+  - **macOS** → `.dmg` installer + zipped `.app` bundle
+  - **Windows** → `.exe` launcher + `.msi` installer + self-contained zip
+  - **Linux** → self-contained `.tar.gz` of the app-image
+
+All artifacts land in [`release/`](release) with a stable, per-platform naming convention (see below).
 
 > ⚠️ For educational and research purposes only. Please purchase a legitimate Charles license at <https://www.charlesproxy.com/> if you use it for work.
 
@@ -20,6 +26,12 @@ This repo ships a small, dependency-free Java codebase plus a build script that 
 
 ```
 charles-crack/
+├── assets/
+│   ├── logo.svg             # Vector logo (source of truth)
+│   ├── logo.png             # 512×512 raster (Linux icon)
+│   ├── logo.icns            # macOS icon bundle
+│   ├── logo.ico             # Windows multi-resolution icon
+│   └── logo-{16..1024}.png  # PNG export sizes
 ├── src/
 │   ├── Main.java            # Cross-platform entry point: GUI + CLI + --help
 │   ├── CharlesKeygen.java   # Key derivation logic (license name → license key)
@@ -27,8 +39,28 @@ charles-crack/
 ├── build.sh                 # Build script for macOS / Linux (bash)
 ├── build.bat                # Build script for Windows (cmd)
 ├── build/                   # Intermediate output (classes, MANIFEST, fat JAR)
-└── dist/                    # Final artifacts, per OS (jar, .app, .dmg, .exe, .msi, .deb, ...)
+├── dist/                    # Raw jpackage output, per OS (.app, .dmg, .exe, ...)
+└── release/                 # Final, renamed, ready-to-ship artifacts
 ```
+
+## Release artifacts & naming
+
+All final binaries go into [`release/`](release). The naming convention is:
+
+```
+CharlesKeygen-<version>[-<os>-<arch>][-<variant>].<ext>
+```
+
+| Platform | File |
+|---|---|
+| **Universal** | `CharlesKeygen-1.0.0.jar` |
+| **macOS (Apple Silicon)** | `CharlesKeygen-1.0.0-macos-arm64.dmg`<br>`CharlesKeygen-1.0.0-macos-arm64-app.zip` |
+| **macOS (Intel)** | `CharlesKeygen-1.0.0-macos-x64.dmg`<br>`CharlesKeygen-1.0.0-macos-x64-app.zip` |
+| **Windows x64** | `CharlesKeygen-1.0.0-windows-x64.exe`<br>`CharlesKeygen-1.0.0-windows-x64.zip`<br>`CharlesKeygen-1.0.0-windows-x64.msi` |
+| **Linux x64** | `CharlesKeygen-1.0.0-linux-x64.tar.gz` |
+| **Linux arm64** | `CharlesKeygen-1.0.0-linux-arm64.tar.gz` |
+
+`jpackage` can only build native installers for the OS it runs on — run `build.sh` / `build.bat` on each target OS (or wire it up in CI) for full coverage. The `.jar` is produced on every run and is always cross-platform.
 
 ## Requirements
 
@@ -65,27 +97,26 @@ Both scripts perform the same pipeline:
 
 1. Compile `src/*.java` → `build/classes/`
 2. Package a runnable JAR → `build/charles-keygen.jar` (manifest sets `Main-Class: Main`)
-3. Invoke `jpackage` to produce native artifacts under `dist/<os>/`
+3. Invoke `jpackage` with the platform icon from `assets/` to produce native artifacts under `dist/<os>/`
+4. **Copy / rename everything into `release/` with the naming convention above**
 
-Example output on macOS:
+Example output on Apple Silicon macOS:
 
 ```
-build/
-└── charles-keygen.jar
-dist/
-└── macos/
-    ├── CharlesKeygen.app
-    └── CharlesKeygen-1.0.0.dmg
+release/
+├── CharlesKeygen-1.0.0.jar
+├── CharlesKeygen-1.0.0-macos-arm64.dmg
+└── CharlesKeygen-1.0.0-macos-arm64-app.zip
 ```
 
 ## Usage
 
 ### 1. GUI (double-click / launch app)
 
-Run the native bundle (`CharlesKeygen.app` / `CharlesKeygen.exe` / `./CharlesKeygen`) or:
+Install from the native bundle for your OS (`.dmg` / `.msi` / `.tar.gz`) or run the JAR directly:
 
 ```bash
-java -jar build/charles-keygen.jar
+java -jar release/CharlesKeygen-1.0.0.jar
 ```
 
 A small Swing window opens. Enter any license name, press **Generate**, and the key is filled in and ready to copy.
@@ -94,13 +125,13 @@ A small Swing window opens. Enter any license name, press **Generate**, and the 
 
 ```bash
 # Shortcut: single positional arg
-java -jar build/charles-keygen.jar "Your Name"
+java -jar release/CharlesKeygen-1.0.0.jar "Your Name"
 
 # Explicit CLI flag
-java -jar build/charles-keygen.jar --cli "Your Name"
+java -jar release/CharlesKeygen-1.0.0.jar --cli "Your Name"
 
 # Help
-java -jar build/charles-keygen.jar --help
+java -jar release/CharlesKeygen-1.0.0.jar --help
 ```
 
 Sample output:
@@ -134,6 +165,38 @@ where:
 - `staticKey` is the well-known 128-bit RC5 key embedded in every Charles build since 3.x.
 
 `RC5.java` implements RC5-32/12/16 (32-bit words, 12 rounds, 16-byte key), and `CharlesKeygen.java` wires it together. See the source for the exact algorithm.
+
+## Regenerating the logo / icons
+
+The logo source lives in `assets/logo.svg`. If you edit it, regenerate the platform icons with:
+
+```bash
+cd assets
+for s in 16 32 64 128 256 512 1024; do
+  rsvg-convert -w $s -h $s logo.svg -o logo-${s}.png
+done
+
+# macOS .icns
+mkdir -p logo.iconset
+cp logo-16.png   logo.iconset/icon_16x16.png
+cp logo-32.png   logo.iconset/icon_16x16@2x.png
+cp logo-32.png   logo.iconset/icon_32x32.png
+cp logo-64.png   logo.iconset/icon_32x32@2x.png
+cp logo-128.png  logo.iconset/icon_128x128.png
+cp logo-256.png  logo.iconset/icon_128x128@2x.png
+cp logo-256.png  logo.iconset/icon_256x256.png
+cp logo-512.png  logo.iconset/icon_256x256@2x.png
+cp logo-512.png  logo.iconset/icon_512x512.png
+cp logo-1024.png logo.iconset/icon_512x512@2x.png
+iconutil -c icns logo.iconset -o logo.icns
+rm -rf logo.iconset
+
+# Windows .ico (ImageMagick)
+magick logo-16.png logo-32.png logo-64.png logo-128.png logo-256.png logo.ico
+
+# Linux PNG
+cp logo-512.png logo.png
+```
 
 ## Troubleshooting
 
